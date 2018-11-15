@@ -16,8 +16,8 @@ Dowload BitcoinCore tại https://bitcoin.org/en/download
 Mỗi Block đều được bắt đầu bằng một ```Magic Number``` 
 STT | Trường dữ liệu | Mô tả | Kích thước |
 --- | --- | --- | --- |
-1 | Magic No | luôn có giá trị 0xD9B4BEF9 | 4 bytes
-2 | Blocksize | Số bytes của một block | 4 bytes
-3 | Blockheader | Bao gồm 6 thành phần | 80 bytes
-4 | Transaction Counter | Số nguyên dương dạng VarInt | 1-9 bytes
+1 | Magic No | luôn có giá trị 0xD9B4BEF9 | 4 bytes |
+2 | Blocksize | Số bytes của một block | 4 bytes |
+3 | Blockheader | Bao gồm 6 thành phần | 80 bytes |
+4 | Transaction Counter | Số nguyên dương dạng VarInt | 1-9 bytes |
 5 | Transactions | Danh sách các giao dịch | ~
