@@ -4,8 +4,12 @@ import bitcoin
 import struct, codecs
 from datetime import datetime
 import pprint
-from bitcoin.core.script import *
+# from bitcoin.core.script import *
 from binascii import unhexlify
+import binascii
+from hashlib import sha256
+import hashlib
+filename = 'blk00300.dat'
 import sys
 if sys.version > '3':
     long = int
@@ -52,9 +56,9 @@ def cal_trans_count(check):
         return count_4, 9
 
 
-def get_hexstring(bytebuffer):
-    bytebuffer = str(bytebuffer)
-    return ''.join(('%x' % ord(a)) for a in bytebuffer)
+# def get_hexstring(bytebuffer):
+#     bytebuffer = str(bytebuffer)
+#     return ''.join(('%x' % ord(a)) for a in bytebuffer)
 
 
 MAP_ENDIAN = {
@@ -91,33 +95,33 @@ def cal_var_int(string_value):
         return count_4, 9
 
 
-def parse_script(s):
-    def ishex(s):
-        return set(s).issubset(set('0123456789abcdefABCDEF'))
-
-    r = []
-
-    # Create an opcodes_by_name table with both OP_ prefixed names and
-    # shortened ones with the OP_ dropped.
-    opcodes_by_name = {}
-    for name, code in OPCODES_BY_NAME.items():
-        opcodes_by_name[name] = code
-        opcodes_by_name[name[3:]] = code
-
-    for word in s.split():
-        if word.isdigit() or (word[0] == '-' and word[1:].isdigit()):
-            r.append(CScript([long(word)]))
-        elif word.startswith('0x') and ishex(word[2:]):
-            # Raw ex data, inserted NOT pushed onto stack:
-            r.append(unhexlify(word[2:].encode('utf8')))
-        elif len(word) >= 2 and word[0] == "'" and word[-1] == "'":
-            r.append(CScript([bytes(word[1:-1].encode('utf8'))]))
-        elif word in opcodes_by_name:
-            r.append(CScript([opcodes_by_name[word]]))
-        else:
-            raise ValueError("Error parsing script: %r" % s)
-
-    return CScript(b''.join(r))
+# def parse_script(s):
+#     def ishex(s):
+#         return set(s).issubset(set('0123456789abcdefABCDEF'))
+#
+#     r = []
+#
+#     # Create an opcodes_by_name table with both OP_ prefixed names and
+#     # shortened ones with the OP_ dropped.
+#     opcodes_by_name = {}
+#     for name, code in OPCODES_BY_NAME.items():
+#         opcodes_by_name[name] = code
+#         opcodes_by_name[name[3:]] = code
+#
+#     for word in s.split():
+#         if word.isdigit() or (word[0] == '-' and word[1:].isdigit()):
+#             r.append(CScript([long(word)]))
+#         elif word.startswith('0x') and ishex(word[2:]):
+#             # Raw ex data, inserted NOT pushed onto stack:
+#             r.append(unhexlify(word[2:].encode('utf8')))
+#         elif len(word) >= 2 and word[0] == "'" and word[-1] == "'":
+#             r.append(CScript([bytes(word[1:-1].encode('utf8'))]))
+#         elif word in opcodes_by_name:
+#             r.append(CScript([opcodes_by_name[word]]))
+#         else:
+#             raise ValueError("Error parsing script: %r" % s)
+#
+#     return CScript(b''.join(r))
 
 MAGIC_BYTES = 4
 BLOCK_SIZE_BYTES = 4
@@ -137,14 +141,53 @@ def get_block_header_component_string(block_header_string):
     bits_string = block_header_string[:4 * 2]
     block_header_string = block_header_string[4 * 2:]
     nonce_string = block_header_string[:4 * 2]
+    nonce = little_endian_2_int(nonce_string)
+
+    # print(nonce_string)
+    # coefficent = nonce_string[2:8]
+    # exponent = nonce_string[:2]
+    # coefficent_decimal = int(coefficent, 16)
+    # exponent_decimal = int(exponent, 16)
+    # target = exponent_decimal * (2 ** (8 * (coefficent_decimal -3)))
+    # print("coeff", coefficent, coefficent_decimal)
+    # print("expo", exponent, exponent_decimal)
+    # print("target", target)
+
+
+    # pprint.pprint({
+    #     "version": convert_endian(version_string),
+    #     "hash_prev_block": convert_endian(hash_prev_block_string),
+    #     "hash_merkel_root": convert_endian(hash_merkle_root_string),
+    #     "time": convert_endian(time_stamp_string),
+    #     "bits": convert_endian(bits_string),
+    #     "nonce": convert_endian(nonce_string)
+    # })
+
+    # header = convert_endian(version_string) + convert_endian(hash_prev_block_string) + convert_endian(hash_merkle_root_string) + convert_endian(time_stamp_string) + convert_endian(bits_string) + convert_endian(nonce_string)
+
+    header = version_string + hash_prev_block_string + hash_merkle_root_string + time_stamp_string + bits_string + nonce_string
+    print("Header", header)
+    try:
+        byte_header = codecs.decode(header, "hex")
+        # print("Header decode", byte_header)
+        hash = sha256(sha256(byte_header).digest()).digest()[::-1]
+        # print("Header hash", hash)
+        print("Header hash encode", codecs.encode(hash, "hex"))
+    except Exception as e:
+        print(e)
     return {
         'version': version_string,
-        'hash_prev_block': hash_prev_block_string,
-        'hash_merkel_root': hash_merkle_root_string,
+        'hash_prev_block': convert_endian(hash_prev_block_string),
+        'hash_merkel_root': convert_endian(hash_merkle_root_string),
         'time_stamp': time_stamp_string,
-        'bits': bits_string,
-        'nonce': nonce_string
+        'bits': convert_endian(bits_string),
+        'nonce': nonce
     }
+
+
+def convert_endian(bytebuffer):
+    bytebuffer = bytebuffer[::-1]
+    return ''.join([bytebuffer[x:x+2][::-1] for x in range(0, len(bytebuffer), 2) ])
 
 
 def parse_block_header(block_header_string):
@@ -191,6 +234,7 @@ def parse_1_input(input_string):
 def parse_input(input_string, input_count):
     inputs = []
     for i in range(0, input_count):
+        print("Calculator Input #", i)
         input_trans, input_string = parse_1_input(input_string)
         inputs.append(input_trans)
     return inputs, input_string
@@ -198,8 +242,11 @@ def parse_input(input_string, input_count):
 
 def parse_1_output(output_string):
     value_string = output_string[:8*2]
+    # print("Value", value_string)
 
     value = little_endian_2_int(value_string)
+
+    print("Value:", value/(10**8), "BTC")
 
     output_string = output_string[8*2:]
 
@@ -208,6 +255,7 @@ def parse_1_output(output_string):
     output_string = output_string[length*2:]
 
     txout_script_string = output_string[:txout_script_length*2]
+
     # TODO: parse txout scrip
     output_string = output_string[txout_script_length*2:]
 
@@ -222,6 +270,7 @@ def parse_1_output(output_string):
 def parse_output(output_string, output_count):
     outputs = []
     for i in range(0, output_count):
+        print("Calculator Output #", i)
         output_trans, output_string = parse_1_output(output_string)
         outputs.append(output_trans)
     return outputs, output_string
@@ -236,10 +285,13 @@ def parse_1_transaction(trans_string):
     trans_string = trans_string[length * 2:]
 
     inputs, trans_string = parse_input(trans_string, in_counter)
+    # print("In counter", in_counter)
 
     out_counter_check = trans_string[:9 * 2]
     out_counter, length = cal_var_int(out_counter_check)
     trans_string = trans_string[length * 2:]
+    # print("Out counter", out_counter)
+    # print("Out counter", out_counter_check)
 
     outputs, trans_string = parse_output(trans_string, out_counter)
 
@@ -275,6 +327,7 @@ def parse_block(block_string):
     # Block size, number of bytes following up to end of block, 4 bytes
     block_size_string = block_string[:BLOCK_SIZE_BYTES*2]
     block_size = little_endian_2_int(block_size_string)
+    # print("Block size", block_size)
 
     # Cut block string 4 bytes
     block_string = block_string[BLOCK_SIZE_BYTES * 2:]
@@ -288,7 +341,7 @@ def parse_block(block_string):
     trans_counter_string_check = block_string[:CHECK_BYTES*2]
     trans_counter, length = cal_var_int(trans_counter_string_check)
     block_string = block_string[length*2:]
-
+    # print("Trans count", trans_counter)
     trans, block_string = parse_transaction(block_string, trans_counter)
 
     return {
@@ -300,139 +353,46 @@ def parse_block(block_string):
     }, block_string
 
 
-
-def minh_test():
-    f = open('data.txt', 'r')
+def parse_file(file_name):
+    f = open(file_name, 'r')
     data = f.read()
+    count = 0
+    block = None
     while len(data):
-        block, data = parse_block(data)
+        try:
+            block, data = parse_block(data)
+        except:
+            pass
         pprint.pprint(block)
-        print("Len:", len(data))
+        # print("Len:", len(data))
+        count += 1
+        # with open("data3.txt", "w") as text_file:
+        #     print(block, file=text_file)
+        if count == 1:
+            break
 
 
 if __name__ == "__main__":
-    minh_test()
+    parse_file("data.txt")
+
+    # with open(filename, 'rb') as f:
+    #     content = f.read(100000)
+    #     zz = binascii.hexlify(content)
+    #     data = str(zz)[2:-1]
+    #     # parse_block(minh)
+    #     count = 0
+    #     while len(data):
+    #         try:
+    #             block, data = parse_block(data)
+    #         except:
+    #             break
+    #         print("Block:", "#" + str(count))
+    #         pprint.pprint(block)
+    #         count += 1
+
+
+
     # slip(data)
     # pprint.pprint(parse_block(data[:578+8]))
     # https: // coinlogic.wordpress.com / 2014 / 02 / 18 / the - protocol - 1 - block /
     # https: // en.bitcoin.it / wiki / Protocol_documentation  # Variable_length_integer
-
-
-def slip(data):
-    # print("Magic Number", data[:8])
-
-    block_size_string = data[8:16]
-    block_size = big_endian_2_int(block_size_string)
-    print("Block Size:", block_size, "bytes")
-
-    block_header = data[16:176]
-    verson_string = block_header[:8]
-    verson = big_endian_2_int(verson_string)
-    print("Version:", verson)
-
-    print("Hash of previous block's header", block_header[8:72])
-    print("Merkle root:", block_header[72:136])
-
-    time_stamp_string = data[136:144]
-    time_stamp = big_endian_2_int(time_stamp_string)
-    time = datetime.utcfromtimestamp(time_stamp).strftime('%Y-%m-%d %H:%M:%S')
-    print("Time:", time)
-
-    nbits_string = data[144:152]
-    nbits = big_endian_2_int(nbits_string)
-    print("nBits:", nbits)
-
-    nonce_string = block_header[152:]
-    nonce = big_endian_2_int(nonce_string)
-    print("nonce:", nonce)
-
-    length_block = block_size * 2 + 8
-    block = data[:length_block]
-    block_data = block[176:]
-    print(length_block)
-
-    check = block_data[:18]
-    transaction_count, count_len = cal_trans_count(check)
-    print("Number of transactions in the block (including unmatched ones):", transaction_count)
-
-    trans_data = block_data[count_len*2:]
-    print('----Transaction----')
-    trans_version_string = trans_data[:8]
-    trans_version = big_endian_2_int(trans_version_string)
-    print('Version', trans_version)
-    trans_data = trans_data[8:]
-
-    in_counter_string = trans_data[:18]
-    in_counter, in_counter_len = cal_trans_count(in_counter_string)
-    print("In counter", in_counter)
-    trans_data = trans_data[in_counter_len*2:]
-
-    print("    ----List of Inputs----")
-
-    previous_transaction_hash = trans_data[:64]
-    print("Previous Transaction Hash", previous_transaction_hash)
-    trans_data = trans_data[64:]
-
-    previous_txout_index_string = trans_data[:8]
-    previous_txout_index = big_endian_2_int(previous_txout_index_string)
-    print("Previous Txout Index:", previous_txout_index_string, previous_txout_index)
-    trans_data = trans_data[8:]
-
-    check = trans_data[:18]
-    txin_sxript_length, txin_sxript_bytes = cal_trans_count(check)
-    print("Txin Script Lenght:", txin_sxript_length)
-    trans_data = trans_data[txin_sxript_bytes*2:]
-
-    # TODO: Skip txin length
-    trans_data = trans_data[txin_sxript_length*2:]
-
-    sequence_no_string = trans_data[:8]
-    sequence_no = big_endian_2_int(sequence_no_string)
-    print("Sequence no:", sequence_no_string, sequence_no)
-    trans_data = trans_data[8:]
-
-    print("    ----End List of Inputs----")
-
-    out_counter_string = trans_data[:18]
-    out_counter, out_counter_len = cal_trans_count(out_counter_string)
-    print("Out counter", out_counter)
-    trans_data = trans_data[out_counter_len * 2:]
-
-    print("    ----List of Outputs----")
-
-    value_string = trans_data[:16]
-    value = big_endian_2_int_8(value_string)
-    print("Value:", value/10**8, "BTC")
-    trans_data = trans_data[16:]
-
-    check = trans_data[:18]
-    txout_script_length, txout_bytes = cal_trans_count(check)
-    print("Txout-script length", txout_script_length)
-    trans_data = trans_data[txout_bytes*2:]
-
-    # TODO: Skip txout length
-    trans_data = trans_data[txout_script_length * 2:]
-
-    print("    ----End List of Outputs----")
-
-    # lock_time_string = trans_data[:8]
-    # lock_time_stamp = big_endian_2_int(lock_time_string)
-    # lock_time = datetime.utcfromtimestamp(lock_time_stamp).strftime('%Y-%m-%d %H:%M:%S')
-    # print("Lock time", lock_time)
-
-
-    # total_transaction_string = block_data[:8]
-    # total_transaction = big_endian_2_int(total_transaction_string)
-    # print("Number of transactions in the block (including unmatched ones)", total_transaction)
-    #
-    # print(codecs.decode(total_transaction_string, "hex"))
-    # for i in range(1, 10):
-    #     trans = block_data[:i*2]
-    #     print(big_endian_2_int(trans))
-
-    # print("Block Data", data[176:])
-
-    # print(bytes.fromhex(data[:8]).decode('utf-8'))
-
-    # print(bytes.fromhex(b'f9beb4d9').decode('utf-8'))
-    # print(convert(data))
