@@ -1,13 +1,25 @@
 # BITCOIN PARSING
+
 ### Đặc tả project
 Nhiệm vụ chính của Project là từ dữ liệu của **Bitcoin** ở dạng nhị phân chứa trong các file ```.dat``` có thể parse thành dữ liệu có thể sử dụng để khai phá.
 
 Project được sử dụng cho mục đích nghiên cứu khoa học ở trường Đại học Bách Khoa HCM
 
-*Ngôn ngữ sử dụng:* Python (3.6)
-*Các thư viện sử dụng:* ```hashlib```, ```struct```, ```codecs```
+Ngôn ngữ sử dụng: **Python** (3.6)
+Các thư viện sử dụng: ```hashlib```, ```struct```, ```codecs```
 
-*Tác giả:* **Nguyễn Duy Minh** (nguyenduyminh2111@gmail.com)
+Tác giả: **Nguyễn Duy Minh** (nguyenduyminh2111@gmail.com)
+
+### Các công việc cần thực hiện 
+
+- [x] Tìm hiểu kiến thức nền về Blockchain 
+- [x] Lấy dữ liệu full node của Bitcoin 
+- [x] Tìm hiểu cấu trúc block của Bitcoin
+- [x] Parse được các dữ liệu cơ bản của một Block
+- [ ] Parse chi tiết một Block
+- [ ] Chuyển dữ liệu về dạng dữ liệu quan hệ
+- [ ] Khai phá dữ liệu Bitcoin (Gồm nhiều công việc nhỏ)
+- [ ] ......
 
 ### Nguồn dữ liệu
 Dowload **BitcoinCore** tại https://bitcoin.org/en/download 
